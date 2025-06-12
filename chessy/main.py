@@ -29,7 +29,7 @@ def search_move(board, depth):
     best_score = -float('inf') if board.turn == chess.WHITE else float('inf')
     for move in generate_moves(board):
         board.push(move)
-        score = alphabeta(board, depth - 1, -float('inf'), float('inf'))
+        score = alphabeta(board, depth - 1, -float('inf'), float('inf'), True)
         board.pop()
         if board.turn == chess.WHITE and score > best_score:
             best_score = score
@@ -40,14 +40,14 @@ def search_move(board, depth):
     return best_move
 
 
-def alphabeta(board, depth, alpha, beta):
+def alphabeta(board, depth, alpha, beta, maximizingPlayer):
     # Implementation of Alpha-beta pruning described here: https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
     if depth == 0 or board.is_game_over():
         return evaluate_position(board)
-    if board.turn == chess.WHITE:
+    if maximizingPlayer:
         best_score = -float('inf')
         for move in generate_moves(board):
-            best_score = max(best_score, alphabeta(board, depth - 1, alpha, beta))
+            best_score = max(best_score, alphabeta(board, depth - 1, alpha, beta, False))
             if best_score >= beta:
                 break
             alpha = max(alpha, best_score)
@@ -55,7 +55,7 @@ def alphabeta(board, depth, alpha, beta):
     else:
         best_score = float('inf')
         for move in generate_moves(board):
-            best_score = min(best_score, alphabeta(board, depth - 1, alpha, beta))
+            best_score = min(best_score, alphabeta(board, depth - 1, alpha, beta, True))
             if best_score <= alpha:
                 break
             beta = min(beta, best_score)
