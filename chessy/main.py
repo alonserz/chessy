@@ -1,87 +1,68 @@
-# SOURCES:
-# https://www.adamberent.com/wp-content/uploads/2019/02/GuideToProgrammingChessEngine.pdf 
 import chess
 from eval import PAWN_TABLE, KNIGHT_TABLE, BISHOP_TABLE, ROOK_TABLE, QUEEN_TABLE, KING_TABLE_EARLY
 
-def generate_moves(board):
+def legal_moves(board):
     return list(board.legal_moves)
 
 def evaluate_board(board):
     score = 0
-    piece_table = {
-        'p': 10,
-        'r': 50,
-        'n': 30,
-        'b': 30,
-        'q': 90,
-        'k': 900,
+    pieces_value = {
+        'p': 100,
+        'n': 320,
+        'b': 330,
+        'r': 500,
+        'q': 900,
+        'k': 20000,
+    }
+    pieces_position_values = {
+        'p': PAWN_TABLE,
+        'b': BISHOP_TABLE,
+        'n': KNIGHT_TABLE,
+        'k': KING_TABLE_EARLY,
+        'q': QUEEN_TABLE,
+        'r': ROOK_TABLE,
     }
     for idx, piece in board.piece_map().items():
         piece_type = str(piece).lower()
-        # TODO: at least it works, but must rewrite
+
+        piece_position_value = 0
+
         if piece.color == chess.WHITE:
-            if piece_type == 'p':
-                # pawn
-                score += piece_table[piece_type] + PAWN_TABLE[idx]
-            elif piece_type == 'b':
-                # bishop
-                score += piece_table[piece_type] + BISHOP_TABLE[idx]
-            elif piece_type == 'n':
-                # knight
-                score += piece_table[piece_type] + KNIGHT_TABLE[idx]
-            elif piece_type == 'k':
-                # king
-                score += piece_table[piece_type] + KING_TABLE_EARLY[idx]
-            elif piece_type == 'q':
-                # queen
-                score += piece_table[piece_type] + QUEEN_TABLE[idx]
-            elif piece_type == 'r':
-                # rook
-                score += piece_table[piece_type] + ROOK_TABLE[idx]
-                pass
-        else:
-            if piece_type == 'p':
-                # pawn
-                score -= piece_table[piece_type] + PAWN_TABLE[::-1][idx]
-            elif piece_type == 'b':
-                # bishop
-                score -= piece_table[piece_type] +  BISHOP_TABLE[::-1][idx]
-            elif piece_type == 'n':
-                # knight
-                score -= piece_table[piece_type] + KNIGHT_TABLE[::-1][idx]
-            elif piece_type == 'k':
-                # king
-                score -= piece_table[piece_type] + KING_TABLE_EARLY[::-1][idx]
-            elif piece_type == 'q':
-                # queen
-                score -= piece_table[piece_type] + QUEEN_TABLE[::-1][idx]
-            elif piece_type == 'r':
-                # rook
-                score -= piece_table[piece_type] + ROOK_TABLE[::-1][idx]
-                pass
+            piece_position_value = pieces_position_values[piece_type][idx]
+        elif piece.color == chess.BLACK:
+            piece_position_value = pieces_position_values[piece_type][::-1][idx]
+        
+        piece_evaluation = pieces_value[piece_type] + piece_position_value
+        
+        if piece.color == chess.BLACK:
+            piece_evaluation = piece_evaluation * -1
+
+        score += piece_evaluation
     return score
 
 
 def search_move(board, depth):
     best_move = None
     best_score = -float('inf') if board.turn == chess.WHITE else float('inf')
-    for move in generate_moves(board):
+    for move in legal_moves(board):
         board.push(move)
         score = alphabeta(board, depth - 1, -float('inf'), float('inf'), True)
         board.pop()
-        if board.turn == chess.WHITE and score > best_score:
+        if board.turn == chess.WHITE and score >= best_score:
             best_score = score
             best_move = move
-        return best_move
+        if board.turn == chess.BLACK and score <= best_score:
+            best_score = score
+            best_move = move
+    return best_move
 
 
 def alphabeta(board, depth, alpha, beta, maximizingPlayer):
-    # Implementation of Alpha-beta pruning described here: https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
     if depth == 0 or board.is_game_over():
         return evaluate_board(board)
     if maximizingPlayer:
         best_score = -float('inf')
-        for move in generate_moves(board):
+        for move in legal_moves(board):
             board.push(move)
             best_score = max(best_score, alphabeta(board, depth - 1, alpha, beta, False))
             board.pop()
@@ -91,7 +72,7 @@ def alphabeta(board, depth, alpha, beta, maximizingPlayer):
         return best_score
     else:
         best_score = float('inf')
-        for move in generate_moves(board):
+        for move in legal_moves(board):
             board.push(move)
             best_score = min(best_score, alphabeta(board, depth - 1, alpha, beta, True))
             board.pop()
